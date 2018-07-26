@@ -1,0 +1,133 @@
+#!/bin/bash
+
+delimiter="//" #default delimiter to put
+declare -a workf #all files array
+OLD_IFS=$IFS #saving delimiter in 'read' command
+IFS="\\n"  #and chaging it to \\n, cause it should read the whole string
+tempf=0  #should we left the temp files?
+
+flag_error () {
+    echo "Error, flag "$1", see "--help"." >&2
+    echo "Problem: $2"
+    exit 1
+}
+
+print_help () {
+    cat <<- _EOF_
+    SHORT INFO:
+        komment is a programm that creates straight wall of comments
+        with custom delimiter
+    _________________________________________________________________________________________    
+    PARAMETERS:
+               --help: shows short information about this programm
+    
+    -d or --delimiter: set custom delimiter for commenting
+    
+         -t or --temp: left temp files for usage 
+    _________________________________________________________________________________________
+    ADDITIONAL:
+        This programm has some bugs, that might be fixed in a future
+        but it is programm for author usage, and good practice of
+        bash scripting.
+    _________________________________________________________________________________________
+    BUGS:
+        If string is to long it will be in code part in resulting file
+        If delimiter is in brackest - "", then it will be interpreted
+        All of sed instructions was constructed in haste, so in future(if it will be needed)
+        it will be optimized.
+        All bugs acceptable for now, because programm is for rare personal usage.
+    _________________________________________________________________________________________
+    AUTHORS:
+        Fedurko Nikolaus
+    _EOF_
+    exit 0
+}
+
+set_file () {
+if [[ -e $1 ]]; then #if it exists
+    if [[ -r $1 ]]; then #and readable
+        workf[${#workf[@]}]=$1 #add it to array of our working files
+    else
+        flag_error $1 "non-readable file"
+    fi
+else
+    flag_error $1 "file doesn't exist"
+fi
+}
+
+set_delimiter () {
+if [[ -n $1 ]]; then    #if it is not empty, set delimiter
+    delimiter=$1
+else
+    flag_error $1 "empty delimiter"
+fi
+}
+
+while [[ -n $1 ]]; do #parameter processing loop
+    case $1 in
+            -d | --delimiter)    shift
+                                set_delimiter $1
+                                ;;
+
+            --help)                print_help
+                                ;;
+            
+            -t | --temp)        tempf=1 #we should left the temp files
+                                ;;
+                            
+                 *)                set_file $1 #all other is our potential working files
+                                ;;
+    esac
+    shift
+done
+
+for i in "${workf[@]}"; do    #for every of our working files
+    declare -a com    #array of comment strings
+    declare -a cod    #array of code strings
+    maxlen=0        #maximal length of our code(members of cod)
+    filen=0            #the size of our arrays
+
+    sed 's/\\t/    /g' $i | sed 's/\\\\/\\\\\\\\/g' > ${i}_untabbed.tmp #change all tabs to 4 spaces ~ expand $i
+    
+    > ${i}_cod.tmp #create all temp files
+    > ${i}_com.tmp
+    
+    while read j; do ## reading string by string
+        cod[filen]=$(echo "$j" | sed -r 's@('${delimiter}')+.*$@@g' | sed -r 's@ *$@@g') #take only code
+        com[filen]=$(echo "$j" | sed -r '\\@'${delimiter}'@!d')
+        com[filen]=$(echo "${com[filen]}" | sed -r 's@^[^'${delimiter}']*'${delimiter}'@@g')     #only comments
+
+        if [[ ${#cod[filen]} -gt $maxlen ]]; then #find maxlen
+            maxlen=${#cod[filen]}
+        fi
+
+        echo "${cod[filen]}" >> ${i}_cod.tmp #fulfill our files
+        echo "${com[filen]}" >> ${i}_com.tmp
+        
+        filen=$filen+1
+    done < ${i}_untabbed.tmp ##from this file
+
+    > ${i}.rdy #create our result file
+
+    for (( j=0; j<filen; j=$j+1 )); do    #fulfill it straight with delimiters
+        curlen=$(($maxlen-${#cod[j]}+3))
+        
+        com[j]=$(echo "${com[j]}" | sed -r 's@\\\\n@\\\\\\\\n@g' | sed -r 's@\\\\t@\\\\\\\\t@g' )
+
+        cur_spc_str=""
+        for (( k=0; k<curlen; k=$k+1 )); do
+            cur_spc_str="${cur_spc_str} "    #making right amount of spaces for every string 
+        done
+        
+        echo "${cod[j]}" | sed -r "s|$|$cur_spc_str$delimiter${com[j]}|" >> ${i}.rdy #adding string to file
+    done
+
+    if [[ tempf -eq 0 ]]; then    #deleting temp files
+    rm -f ${i}_untabbed.tmp ${i}_com.tmp ${i}_cod.tmp
+    fi
+
+    unset com    #deleting arrays for this loop
+    unset cod
+done 
+
+IFS=$OLD_IFS    #setting our 'read' delimiter to previous

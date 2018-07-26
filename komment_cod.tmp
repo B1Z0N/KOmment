@@ -1,0 +1,133 @@
+
+
+delimiter="//"
+declare -a workf
+OLD_IFS=$IFS
+IFS="\n"
+tempf=0
+
+flag_error () {
+    echo "Error, flag "$1", see "--help"." >&2
+    echo "Problem: $2"
+    exit 1
+}
+
+print_help () {
+    cat <<- _EOF_
+    SHORT INFO:
+        komment is a programm that creates straight wall of comments
+        with custom delimiter
+    _________________________________________________________________________________________
+    PARAMETERS:
+               --help: shows short information about this programm
+
+    -d or --delimiter: set custom delimiter for commenting
+
+         -t or --temp: left temp files for usage
+    _________________________________________________________________________________________
+    ADDITIONAL:
+        This programm has some bugs, that might be fixed in a future
+        but it is programm for author usage, and good practice of
+        bash scripting.
+    _________________________________________________________________________________________
+    BUGS:
+        If string is to long it will be in code part in resulting file
+        If delimiter is in brackest - "", then it will be interpreted
+        All of sed instructions was constructed in haste, so in future(if it will be needed)
+        it will be optimized.
+        All bugs acceptable for now, because programm is for rare personal usage.
+    _________________________________________________________________________________________
+    AUTHORS:
+        Fedurko Nikolaus
+    _EOF_
+    exit 0
+}
+
+set_file () {
+if [[ -e $1 ]]; then
+    if [[ -r $1 ]]; then
+        workf[${
+    else
+        flag_error $1 "non-readable file"
+    fi
+else
+    flag_error $1 "file doesn't exist"
+fi
+}
+
+set_delimiter () {
+if [[ -n $1 ]]; then
+    delimiter=$1
+else
+    flag_error $1 "empty delimiter"
+fi
+}
+
+while [[ -n $1 ]]; do
+    case $1 i
+            -d | --delimiter)    shift
+                                set_delimiter $1
+                                ;;
+
+            --help)                print_help
+                                ;;
+
+            -t | --temp)        tempf=1
+                                ;;
+
+                 *)                set_file $1
+                                ;;
+    esac
+    shift
+done
+
+for i in "${workf[@]}"; do
+    declare -a com
+    declare -a cod
+    maxlen=0
+    filen=0
+
+    sed 's/\t/    /g' $i | sed 's/\\/\\\\/g' > ${i}_untabbed.tmp
+
+    > ${i}_cod.tmp
+    > ${i}_com.tmp
+
+    while read j; do
+        cod[filen]=$(echo "$j" | sed -r 's@('${delimiter}')+.*$@@g' | sed -r 's@ *$@@g')
+        com[filen]=$(echo "$j" | sed -r '\@'${delimiter}'@!d')
+        com[filen]=$(echo "${com[filen]}" | sed -r 's@^[^'${delimiter}']*'${delimiter}'@@g')
+
+        if [[ ${
+            maxlen=${
+        fi
+
+        echo "${cod[filen]}" >> ${i}_cod.tmp
+        echo "${com[filen]}" >> ${i}_com.tmp
+
+        filen=$filen+1
+    done < ${i}_untabbed.tmp
+
+    > ${i}.rdy
+
+    for (( j=0; j<filen; j=$j+1 )); do
+        curlen=$(($maxlen-${
+
+        com[j]=$(echo "${com[j]}" | sed -r 's@\\n@\\\\n@g' | sed -r 's@\\t@\\\\t@g' )
+
+        cur_spc_str=""
+        for (( k=0; k<curlen; k=$k+1 )); do
+            cur_spc_str="${cur_spc_str} "
+        done
+
+        echo "${cod[j]}" | sed -r "s|$|$cur_spc_str$delimiter${com[j]}|" >> ${i}.rdy
+    done
+
+    if [[ tempf -eq 0 ]]; then
+    rm -f ${i}_untabbed.tmp ${i}_com.tmp ${i}_cod.tmp
+    fi
+
+    unset com
+    unset cod
+done
+
+IFS=$OLD_IFS

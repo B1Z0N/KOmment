@@ -1,0 +1,133 @@
+!/bin/bash
+
+default delimiter to put
+all files array
+saving delimiter in 'read' command
+and chaging it to \n, cause it should read the whole string
+should we left the temp files?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if it exists
+and readable
+workf[@]}]=$1 #add it to array of our working files
+
+
+
+
+
+
+
+
+
+if it is not empty, set delimiter
+
+
+
+
+
+
+parameter processing loop
+
+
+
+
+
+
+
+
+we should left the temp files
+
+
+all other is our potential working files
+
+
+
+
+
+for every of our working files
+array of comment strings
+array of code strings
+maximal length of our code(members of cod)
+the size of our arrays
+
+change all tabs to 4 spaces ~ expand $i
+
+create all temp files
+
+
+# reading string by string
+take only code
+
+only comments
+
+cod[filen]} -gt $maxlen ]]; then #find maxlen
+cod[filen]}
+
+
+fulfill our files
+
+
+
+#from this file
+
+create our result file
+
+fulfill it straight with delimiters
+cod[j]}+3))
+
+
+
+
+
+making right amount of spaces for every string 
+
+
+adding string to file
+
+
+deleting temp files
+
+
+
+deleting arrays for this loop
+
+
+
+setting our 'read' delimiter to previous
